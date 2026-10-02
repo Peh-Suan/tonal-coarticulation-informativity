@@ -1,0 +1,18 @@
+# Python >= 3.10. Pipeline steps and what they need:
+#   all steps                     pandas, numpy
+#   TSM 05, COSPRO 07 (F0)        praat-parselmouth
+#   TSM 06/07, COSPRO 04b/06/06b  torch, transformers (Taigi-Llama-2-7B / ckiplab models from the Hugging Face hub)
+#   COSPRO 02/02b (ASR)           mlx-whisper (Apple Silicon only)
+#   COSPRO 02-04b                 opencc-python-reimplemented, pypinyin
+#   COSPRO 05 (segmentation)      ckip-transformers
+#   informativity (TM readings)   pypinyin
+#   TSM 02 (alignment)            Montreal Forced Aligner, via conda: conda create -n aligner -c conda-forge montreal-forced-aligner
+pandas>=2.0
+numpy>=1.24
+praat-parselmouth>=0.4
+torch>=2.1
+transformers>=4.40
+pypinyin>=0.50
+opencc-python-reimplemented>=0.1.7
+ckip-transformers>=0.3
+mlx-whisper; sys_platform == "darwin" and platform_machine == "arm64"

@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.DS_Store
+.ipynb_checkpoints/
+analysis/fits/
+cospro_pipeline/out/
+lexicon/texts.txt
+lexicon/dict-revised.json*
+tables/*_pypinyin.csv
+*.rds
