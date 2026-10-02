@@ -31,6 +31,9 @@ accent_group, built from the TAT-MOE 腔調 field), speakers in group 'zhang'
 speakers in group 'quan' (泉-leaning) get 5 -> 3, and all other speakers
 (不清楚, Hakka 四縣, 海口 / 老泉, 澎湖) are DROPPED from the output. The rest of
 the SANDHI table is the same for both groups. --speaker-groups '' disables this.
+Update 2026-10-02: 海口 / 偏海口 / 老泉 / 澎湖 -> 'quan'; 不清楚 -> 'unknown' (kept; their
+word-internal / pre-boundary T5 gets no surface tone, since 5 -> 7 vs 5 -> 3 is unknown);
+only the two Hakka-accent speakers (四縣) remain 'drop'.
 
 Input : <prep>/syllable_alignments.csv (from 03)   Output: <prep>/syllables_surface.csv
   python 04_surface_tones.py --prep ~/tsm_mfa/all_condenser
@@ -70,7 +73,7 @@ def main():
     ap.add_argument("--t5", choices=["south", "north"], default="south",
                     help="T5 rule for everyone when no speaker-groups file is used")
     ap.add_argument("--speaker-groups", default="speaker_accents.csv",
-                    help="csv (relative to --prep) with speaker, accent_group in {zhang, quan, drop}; '' = off")
+                    help="csv (relative to --prep) with speaker, accent_group in {zhang, quan, unknown, drop}; '' = off")
     a = ap.parse_args()
     if a.t5 == "north":
         SANDHI["5"] = "3"
@@ -82,7 +85,7 @@ def main():
         g = pd.read_csv(grp_path).set_index("speaker").accent_group
         d["accent_group"] = d.speaker.map(g).fillna("drop")
         n0, s0 = len(d), d.speaker.nunique()
-        d = d[d.accent_group.isin(["zhang", "quan"])].copy()
+        d = d[d.accent_group.isin(["zhang", "quan", "unknown"])].copy()
         print(f"speaker groups from {grp_path.name}: kept {d.speaker.nunique()} of {s0} speakers "
               f"({d.groupby('accent_group').speaker.nunique().to_dict()}), {len(d)} of {n0} syllables")
     else:
@@ -111,6 +114,10 @@ def main():
     # 泉-leaning speakers: T5 -> T3 instead of T7 (everything else as in SANDHI)
     quan = (d.accent_group.eq("quan") & d.tone.eq("5")).to_numpy()
     sandhi = ["3" if q else s for s, q in zip(sandhi, quan)]
+    # unknown accent (corpus label 不清楚): the T5 sandhi form (7 or 3) is unknown -> no surface tone
+    # (surface_certain = 0 below); every other tone has the same sandhi form in both groups
+    unk5 = (d.accent_group.eq("unknown") & d.tone.eq("5")).to_numpy()
+    sandhi = ["" if u else s for s, u in zip(sandhi, unk5)]
     cit = d.tone.where(d.tone.isin(list("1234578")), "")
     d["sandhi_form"] = sandhi
     d["surface_tone"] = cit

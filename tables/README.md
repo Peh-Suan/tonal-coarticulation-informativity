@@ -12,7 +12,7 @@ Written by `tsm_pipeline/informativity_positional.py` (and, for the `informativi
 | `functional_load_pos_*.csv`, `functional_load_full_context_*.csv` | functional load in the same cells: `functional_load` (sum over competitors), `functional_load_max` (strongest competitor), `*_plugin` (no smoothing), `share_zero` |
 | `alpha_calibration_{TSM,TM}.csv` | smoothing calibration (bias of thinned edge cells by alpha) |
 | `informativity_{TSM,TM}.csv`, `informativity_sandhi_*.csv` | legacy tables (disyllabic words only) → `*_tai` columns |
-| `speaker_accents_TSM.csv` | TAT-MOE speaker → accent group (`zhang`, `quan`, `drop`), from the corpus 腔調 field; copy to `<prep>/speaker_accents.csv` before TSM step 4 |
+| `speaker_accents_TSM.csv` | TAT-MOE speaker → accent group from the corpus 腔調 field: `zhang` (T5 → T7), `quan` (T5 → T3; Quanzhou-leaning, 海口, 老泉, 澎湖), `unknown` (不清楚: kept, but word-internal T5 has no surface tone), `drop` (Hakka-accent speakers); copy to `<prep>/speaker_accents.csv` before TSM step 4 |
 
 Common columns: `direction` (`carryover`: target = syllable 2; `anticipatory`: target = syllable 1), `pair`
 (tone of syllable 1 – tone of syllable 2), `pos_class` (target position in the word: `initial` / `medial` / `final`,

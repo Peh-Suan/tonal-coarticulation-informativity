@@ -38,8 +38,9 @@ Main columns
   speaker, sex, age, accent, site, item_id (same sentence across speakers), token_id
   Quality: romanised (word has a romanised syllable; their surprisal is inflated, see 06),
   token_crosses_word, too_short1/2, pre_a_suffix1
-  keep       recommended subset: F0 present and not suspect, not too short, informativity_sandhi
-             defined (no checked tones, citation or surface; no neutral tones), syllable-2 surface tone certain AND citation
+  keep       recommended subset: F0 present and not suspect, not too short, citation informativity
+             defined, no checked tones, both surface tones known (no neutral tones; unknown-accent speakers'
+             T5 before another syllable of the word has no surface tone), syllable-2 surface tone certain AND citation
              (the disyllabic-word design of the TAI study), not before á, word surprisal
              present, not romanised, no token crossing the word boundary
   keep_any2  same, but syllable 2 may also be a (certain) sandhi form
@@ -295,7 +296,12 @@ def main():
 
     tf = lambda col: out[col].astype(str).isin(["True", "1", "1.0"])
     base = (out.target_f0.notna() & out.context_f0.notna() & ~out.target_suspect & ~out.context_suspect
-            & ~tf("too_short1") & ~tf("too_short2") & out.informativity_sandhi.notna()
+            & ~tf("too_short1") & ~tf("too_short2")
+            # citation-tone informativity defined, no checked tones (4/8), both surface tones known
+            # (was: informativity_sandhi defined, which also required a zhang/quan sandhi table, i.e. it
+            # dropped unknown-accent speakers; the analysis uses citation-tone informativity)
+            & out.informativity.notna() & ~out.tone1.isin(["4", "8"]) & ~out.tone2.isin(["4", "8"])
+            & out.surface_tone1.fillna("").ne("") & out.surface_tone2.fillna("").ne("")
             & out.juncture_after1.eq("word_internal") & ~tf("pre_a_suffix1") & tf("surface_certain2")
             & ~tf("neutral1") & ~tf("neutral2") & out.word_surprisal.notna()
             & out.romanised.eq(0) & out.token_crosses_word.eq(0))
