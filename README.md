@@ -22,7 +22,10 @@ tsm_pipeline/          Taiwan Southern Min (TAT-MOE): alignment, sandhi, F0, sur
   moe_readings.py                Taiwan Mandarin readings for the Mandarin lexicon
 cospro_pipeline/       Taiwan Mandarin (COSPRO): characters, words, F0, surprisal → processed_data.csv
 analysis/
-  cross_language_models.ipynb    lmer + brms models, contrasts, paper figures (R / IRkernel)
+  paper_model.ipynb              the model reported in the paper: lmer fit, contrasts, Figure 1 (R / IRkernel)
+  paper_contrasts.R              every beta / CI / p in the Results (called from paper_model.ipynb)
+  paper_figure.R                 Figure 1 (called from paper_model.ipynb)
+  cross_language_models.ipynb    earlier exploratory models (tone-pair intercepts, brms); not used for the paper
 tables/                informativity / functional-load tables used in the paper (see tables/README.md)
 lexicon/               lexicon inputs for the tables (not distributed; see lexicon/README.md)
 environment/           Python requirements and R package list
@@ -127,41 +130,45 @@ python tsm_pipeline/08_build_processed.py --prep $P                             
 (cd cospro_pipeline && python 08_build_processed.py --segmented <path/to/segmented_texts>)   # → out/processed_data.csv
 ```
 
-Both write the same column names: one row per within-word bigram × direction, the `keep` subset used in the paper,
+Both write the same column names: one row per within-word bigram × direction, the analysis subsets (`keep_any2` for TSM, `keep` for TM; see below),
 every informativity / functional-load measure for the target (`informativity…`, `functional_load…`) and for the
 context tone (`context_…`), word surprisal (`unigram_surprisal`), contextual surprisal and gain (`context_gain`),
 durations, F0 portions, segment types, position classes and speaker / item ids. Column definitions are in the
 docstrings of the two `08_build_processed.py` scripts.
 
-### 5. Models and figures
+### 5. Model, contrasts and figure (paper)
 
-Open `analysis/cross_language_models.ipynb` (R kernel), set the data paths if needed
+Open `analysis/paper_model.ipynb` (R kernel), set the data paths if needed
 
 ```bash
 export TSM_DATA=$P/processed_data.csv
 export COSPRO_DATA=$PWD/cospro_pipeline/out/processed_data.csv
 ```
 
-and run all cells. The header cell lists what each cell does and which part of the paper it produces. Run it once
-per measure by changing `INF_COL` in the Settings cell:
+and run all cells. The lmer fit takes about 65–80 min on an Apple M-series laptop (≈ 553k rows: TSM 181,988 from
+381 speakers, TM 371,174 from 96 speakers) and is saved to `analysis/fits/paper_model/`; later runs reuse it as long
+as the formula and data are unchanged. The last two cells write `paper_contrasts.csv` (every statistic in the Results)
+and `fig1.png/pdf`.
 
-| `INF_COL` | role in the paper |
-|---|---|
-| `informativity_full_context` | main analysis |
-| `functional_load_full_context` | robustness: functional load |
-| `informativity` | robustness: positional informativity |
+Analysis subsets: TSM `keep_any2` (within-word pairs whose second syllable has a certain surface tone, citation or
+sandhi; checked tones excluded; speakers of unknown accent kept, minus tones whose sandhi form depends on the accent),
+TM `keep`.
 
-Approximate run times on an Apple M-series laptop: lmer fit 1–1.5 h (≈ 490k rows), brms fit ≈ 3.5 h (4 chains,
-cmdstanr, 400 rows per speaker), contrasts and figures a few minutes. Fits, tables and figures are written to
-`analysis/fits/<INF_COL>/`.
+`INF_COL` in the Settings cell selects the informativity measure (`informativity` = positional informativity, used
+in the paper). `informativity_full_context` and `functional_load_pos` can be run the same way as robustness checks;
+outputs then go to `fits/paper_model_<INF_COL>/`.
 
 ## Notes for reviewers
 
-* Effects are reported per 1 within-language SD of each predictor; the figure-coefficient cell also gives
-  informativity effects per 0.01 bits, so the two languages can be compared on one scale.
-* Contrasts hold every predictor not shown at its mean (0). `pos` and `lang` are effects-coded (±0.5).
-* Random slopes for `context_f0`, `context_f0:unigram` and `context_f0:gain` by tone pair (× position class) are
-  required: without them, predictability contrasts are evaluated against residual degrees of freedom (pseudo-replication).
-* Bayes factors in the figure-coefficient table are Savage–Dickey ratios under the fitted prior (b ~ normal(0, 0.5))
-  and favour the null for small effects; the credible intervals and the probability of direction are the primary
-  summaries.
+* Effects on coarticulation are contrasts on the `context_f0` slope, per 1 within-language SD of each predictor, with
+  every predictor not shown at its mean (0). `pos` (anticipatory −0.5 / carryover +0.5) and `lang` (TM −0.5 / TSM +0.5)
+  are effects-coded; target tone is sum-coded within language. p-values use Satterthwaite df (lmerTest).
+* Random effects: tone-pair random **slopes** for `context_f0`, `context_f0:unigram` and `context_f0:gain` (no tone-pair
+  intercepts) and target-tone (surface tone × language × position) intercepts and `context_f0` slopes. The slopes make
+  the effects on coarticulation be tested against between-pair variation (without them, df ≈ 500k:
+  pseudo-replication). Dropping tone-pair intercepts while conditioning on the target tone keeps the carryover and
+  anticipatory slopes from being two readings of the same covariance between the two boundary F0 values.
+* Contrasts on the overall slope (language and position differences) have df ≈ 11–15, as they are tested against the
+  target-tone groups.
+* lme4 may print a gradient convergence warning (max |grad| ≈ 0.005); refitting from the converged estimates leaves
+  REML and all fixed effects unchanged (see the convergence-check cell).
